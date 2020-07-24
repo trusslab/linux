@@ -46,6 +46,7 @@ ifeq ($(CONFIG_BLK_DEV_ZONED), y)
 null_blk-$(CONFIG_TRACING) += null_blk_trace.o
 endif
 null_blk-$(CONFIG_BLK_DEV_ZONED) += null_blk_zoned.o
+obj-y	+= octopos_blk/
 
 skd-y		:= skd_main.o
 swim_mod-y	:= swim.o swim_asm.o

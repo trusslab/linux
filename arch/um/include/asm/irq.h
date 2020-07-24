@@ -17,7 +17,8 @@
 #define TELNETD_IRQ 		12
 #define XTERM_IRQ 		13
 #define RANDOM_IRQ 		14
-#define VIRTIO_IRQ		15
+#define OCTOPOS_IRQ 		15
+#define VIRTIO_IRQ		16
 
 #ifdef CONFIG_UML_NET_VECTOR
 
