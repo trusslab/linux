@@ -297,6 +297,16 @@ void reset_queue_sync(uint8_t queue_id, int init_val)
 	sema_init(&interrupts[queue_id], init_val);
 }
 
+/* FIXME: move somewhere else */
+void *ond_tcp_receive(void);
+
+static struct work_struct net_wq;
+
+static void net_receive_wq(struct work_struct *work)
+{
+	ond_tcp_receive();
+}
+
 static irqreturn_t om_interrupt(int irq, void *data)
 {
 	uint8_t buf[MAILBOX_QUEUE_MSG_SIZE];
@@ -321,7 +331,10 @@ static irqreturn_t om_interrupt(int irq, void *data)
 			}
 		} else if (interrupt == Q_OSU ||
 		    interrupt == Q_STORAGE_CMD_IN || interrupt == Q_STORAGE_CMD_OUT ||
-		    interrupt == Q_STORAGE_DATA_IN || interrupt == Q_STORAGE_DATA_OUT) {
+		    interrupt == Q_STORAGE_DATA_IN || interrupt == Q_STORAGE_DATA_OUT ||
+		    interrupt == Q_NETWORK_DATA_IN || interrupt == Q_NETWORK_DATA_OUT) {
+			if (interrupt == Q_NETWORK_DATA_OUT)
+				schedule_work(&net_wq);
 			up(&interrupts[interrupt]);
 		} else if (interrupt > NUM_QUEUES && interrupt <= (2 * NUM_QUEUES)) {
 			/* ignore the ownership change interrupts */
@@ -404,6 +417,7 @@ static int __init om_init(void)
 
 	/* FIXME: very similar to runtime.c */
 	/* initialize syscall response queue */
+	/* FIXME: release memory on exit */
 	syscall_resp_queue = allocate_memory_for_queue(MAILBOX_QUEUE_SIZE, MAILBOX_QUEUE_MSG_SIZE);
 	srq_size = MAILBOX_QUEUE_SIZE;
 	srq_msg_size = MAILBOX_QUEUE_MSG_SIZE;
@@ -412,6 +426,8 @@ static int __init om_init(void)
 	srq_tail = 0;
 
 	sema_init(&srq_sem, MAILBOX_QUEUE_SIZE);
+
+	INIT_WORK(&net_wq, net_receive_wq);
 
 	/* register char dev */
 	err = misc_register(&om_miscdev);

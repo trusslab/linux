@@ -82,6 +82,8 @@
 
 #include <trace/events/tcp.h>
 
+#include <net/octopos_net.h>
+
 #ifdef CONFIG_TCP_MD5SIG
 static int tcp_v4_md5_hash_hdr(char *md5_hash, const struct tcp_md5sig_key *key,
 			       __be32 daddr, __be32 saddr, const struct tcphdr *th);
@@ -276,6 +278,12 @@ int tcp_v4_connect(struct sock *sk, struct sockaddr *uaddr, int addr_len)
 		goto failure;
 
 	sk_set_txhash(sk);
+
+#ifdef CONFIG_OCTOPOS
+	err = octopos_open_socket(daddr, inet->inet_saddr, inet->inet_dport, inet->inet_sport);
+	if (err)
+		goto failure;
+#endif
 
 	rt = ip_route_newports(fl4, rt, orig_sport, orig_dport,
 			       inet->inet_sport, inet->inet_dport, sk);

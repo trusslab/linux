@@ -280,6 +280,8 @@
 #include <asm/ioctls.h>
 #include <net/busy_poll.h>
 
+#include <net/octopos_net.h>
+
 struct percpu_counter tcp_orphan_count;
 EXPORT_SYMBOL_GPL(tcp_orphan_count);
 
@@ -3911,6 +3913,10 @@ void tcp_done(struct sock *sk)
 		sk->sk_state_change(sk);
 	else
 		inet_csk_destroy_sock(sk);
+
+#ifdef CONFIG_OCTOPOS
+	octopos_close_socket_atomic(sk);
+#endif
 }
 EXPORT_SYMBOL_GPL(tcp_done);
 
