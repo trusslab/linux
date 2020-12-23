@@ -6,7 +6,12 @@
 #ifndef UNTRUSTED_DOMAIN
 #include "arch/syscall.h"
 #else
+
+#ifdef CONFIG_ARM64
+#include <octopos/syscall_sechw.h>
+#else 
 #include <octopos/syscall_umode.h>
+#endif
 
 #define printf printk
 #endif
@@ -24,17 +29,20 @@
 #define SYSCALL_READ_FROM_FILE			9
 #define SYSCALL_WRITE_FILE_BLOCKS		10
 #define SYSCALL_READ_FILE_BLOCKS		11
-#define SYSCALL_CLOSE_FILE			12
-#define SYSCALL_REMOVE_FILE			13
-#define SYSCALL_REQUEST_SECURE_STORAGE_CREATION	14
-#define SYSCALL_REQUEST_SECURE_STORAGE_ACCESS	15
-#define SYSCALL_DELETE_SECURE_STORAGE		16
-#define SYSCALL_REQUEST_SECURE_IPC		17
-#define SYSCALL_ALLOCATE_SOCKET			18
-#define SYSCALL_REQUEST_NETWORK_ACCESS		19
-#define SYSCALL_CLOSE_SOCKET			20
-#define SYSCALL_DEBUG_OUTPUTS		21
-#define NUM_SYSCALLS				22
+#define SYSCALL_GET_FILE_SIZE			12
+#define SYSCALL_CLOSE_FILE			13
+#define SYSCALL_REMOVE_FILE			14
+#define SYSCALL_REQUEST_SECURE_STORAGE_CREATION	15
+#define SYSCALL_REQUEST_SECURE_STORAGE_ACCESS	16
+#define SYSCALL_DELETE_SECURE_STORAGE		17
+#define SYSCALL_REQUEST_SECURE_IPC		18
+#define SYSCALL_ALLOCATE_SOCKET			19
+#define SYSCALL_REQUEST_NETWORK_ACCESS		20
+#define SYSCALL_CLOSE_SOCKET			21
+#define SYSCALL_REQUEST_BLUETOOTH_ACCESS	22
+#define SYSCALL_DEBUG_OUTPUTS			23
+#define SYSCALL_REQUEST_TPM_ACCESS		24
+#define NUM_SYSCALLS				25
 
 /* FIXME: move somewhere else */
 /* defines for SYSCALL_ALLOCATE_SOCKET_PORT */
@@ -151,25 +159,25 @@
 
 #define SYSCALL_GET_ONE_ARG		\
 	uint32_t arg0;			\
-	arg0 = *((uint32_t *) &buf[2]); \
+	DESERIALIZE_32(&arg0, &buf[2]);	\
 
 #define SYSCALL_GET_TWO_ARGS		\
 	uint32_t arg0, arg1;		\
-	arg0 = *((uint32_t *) &buf[2]); \
-	arg1 = *((uint32_t *) &buf[6]); \
+	DESERIALIZE_32(&arg0, &buf[2]);	\
+	DESERIALIZE_32(&arg1, &buf[6]);	\
 
 #define SYSCALL_GET_THREE_ARGS		\
 	uint32_t arg0, arg1, arg2;	\
-	arg0 = *((uint32_t *) &buf[2]); \
-	arg1 = *((uint32_t *) &buf[6]); \
-	arg2 = *((uint32_t *) &buf[10]);\
+	DESERIALIZE_32(&arg0, &buf[2]);	\
+	DESERIALIZE_32(&arg1, &buf[6]);	\
+	DESERIALIZE_32(&arg2, &buf[10]);	\
 
 #define SYSCALL_GET_FOUR_ARGS			\
 	uint32_t arg0, arg1, arg2, arg3;	\
-	arg0 = *((uint32_t *) &buf[2]);		\
-	arg1 = *((uint32_t *) &buf[6]);		\
-	arg2 = *((uint32_t *) &buf[10]);	\
-	arg3 = *((uint32_t *) &buf[14]);	\
+	DESERIALIZE_32(&arg0, &buf[2]);	\
+	DESERIALIZE_32(&arg1, &buf[6]);	\
+	DESERIALIZE_32(&arg2, &buf[10]);	\
+	DESERIALIZE_32(&arg3, &buf[14]);	\
 
 #define SYSCALL_GET_ONE_RET				\
 	uint32_t ret0;					\

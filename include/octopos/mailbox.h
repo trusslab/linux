@@ -1,13 +1,18 @@
-#ifndef UNTRUSTED_DOMAIN
+#ifndef _OCTOPOS_MAILBOX_H_
+#define _OCTOPOS_MAILBOX_H_
+
+#if !defined(UNTRUSTED_DOMAIN) && !defined(APPLICATION)
 #include <arch/defines.h>
 #endif
 
 /* mailbox opcodes */
 #define	MAILBOX_OPCODE_READ_QUEUE		0
 #define	MAILBOX_OPCODE_WRITE_QUEUE		1
-#define	MAILBOX_OPCODE_CHANGE_QUEUE_ACCESS	2
-#define	MAILBOX_OPCODE_ATTEST_QUEUE_ACCESS	3
-#define	MAILBOX_OPCODE_RESET			4
+#define	MAILBOX_OPCODE_DELEGATE_QUEUE_ACCESS	2
+#define	MAILBOX_OPCODE_YIELD_QUEUE_ACCESS	3
+#define	MAILBOX_OPCODE_ATTEST_QUEUE_ACCESS	4
+#define	MAILBOX_OPCODE_DISABLE_QUEUE_DELEGATION	5
+#define	MAILBOX_OPCODE_ENABLE_QUEUE_DELEGATION	6
 
 /* processor IDs */
 #define	P_OS			1
@@ -15,13 +20,14 @@
 #define	P_SERIAL_OUT		3
 #define	P_STORAGE		4
 #define	P_NETWORK		5
-#define	P_SENSOR		6
+#define	P_BLUETOOTH		6
 #define	P_RUNTIME1		7
 #define	P_RUNTIME2		8
 #define P_UNTRUSTED		9
-#define NUM_PROCESSORS		9
-#define ALL_PROCESSORS		10
-#define INVALID_PROCESSOR	11
+#define P_TPM			10
+#define NUM_PROCESSORS		10
+#define ALL_PROCESSORS		11
+#define INVALID_PROCESSOR	12
 
 #define NUM_RUNTIME_PROCS	3 /* includes the untrusted domain */
 
@@ -38,12 +44,17 @@
 #define	Q_NETWORK_DATA_OUT	10
 #define	Q_NETWORK_CMD_IN	11
 #define	Q_NETWORK_CMD_OUT	12
-#define Q_SENSOR		13
-#define	Q_RUNTIME1		14
-#define	Q_RUNTIME2		15
-#define	Q_OSU			16
-#define	Q_UNTRUSTED		17
-#define NUM_QUEUES		17
+#define Q_BLUETOOTH_DATA_IN	13
+#define Q_BLUETOOTH_DATA_OUT	14
+#define Q_BLUETOOTH_CMD_IN	15
+#define Q_BLUETOOTH_CMD_OUT	16
+#define	Q_RUNTIME1		17
+#define	Q_RUNTIME2		18
+#define	Q_OSU			19
+#define	Q_UNTRUSTED		20
+#define Q_TPM_IN		21
+#define Q_TPM_OUT		22
+#define NUM_QUEUES		22
 
 #define MAILBOX_QUEUE_SIZE		4
 #define MAILBOX_QUEUE_MSG_SIZE		64
@@ -56,40 +67,46 @@
 #define MAILBOX_QUEUE_MSG_SIZE_LARGE	512
 #endif
 
-#ifndef ARCH_SEC_HW
-#define FIFO_OS_OUT		"/tmp/octopos_mailbox_os_out"
-#define FIFO_OS_IN		"/tmp/octopos_mailbox_os_in"
-#define FIFO_OS_INTR		"/tmp/octopos_mailbox_os_intr"
-#define FIFO_KEYBOARD_OUT	"/tmp/octopos_mailbox_keyboard_out"
-#define FIFO_KEYBOARD_INTR	"/tmp/octopos_mailbox_keyboard_intr"
-#define FIFO_SENSOR		"/tmp/octopos_mailbox_sensor"
-#define FIFO_SENSOR_INTR	"/tmp/octopos_mailbox_sensor_intr"
-#define FIFO_SERIAL_OUT_OUT	"/tmp/octopos_mailbox_serial_out_out"
-#define FIFO_SERIAL_OUT_IN	"/tmp/octopos_mailbox_serial_out_in"
-#define FIFO_SERIAL_OUT_INTR	"/tmp/octopos_mailbox_serial_out_intr"
-#define FIFO_STORAGE_OUT	"/tmp/octopos_mailbox_storage_out"
-#define FIFO_STORAGE_IN		"/tmp/octopos_mailbox_storage_in"
-#define FIFO_STORAGE_INTR	"/tmp/octopos_mailbox_storage_intr"
-#define FIFO_NETWORK_OUT	"/tmp/octopos_mailbox_network_out"
-#define FIFO_NETWORK_IN		"/tmp/octopos_mailbox_network_in"
-#define FIFO_NETWORK_INTR	"/tmp/octopos_mailbox_network_intr"
-#define FIFO_RUNTIME1_OUT	"/tmp/octopos_mailbox_runtime1_out"
-#define FIFO_RUNTIME1_IN	"/tmp/octopos_mailbox_runtime1_in"
-#define FIFO_RUNTIME1_INTR	"/tmp/octopos_mailbox_runtime1_intr"
-#define FIFO_RUNTIME2_OUT	"/tmp/octopos_mailbox_runtime2_out"
-#define FIFO_RUNTIME2_IN	"/tmp/octopos_mailbox_runtime2_in"
-#define FIFO_RUNTIME2_INTR	"/tmp/octopos_mailbox_runtime2_intr"
-#define FIFO_UNTRUSTED_OUT	"/tmp/octopos_mailbox_untrusted_out"
-#define FIFO_UNTRUSTED_IN	"/tmp/octopos_mailbox_untrusted_in"
-#define FIFO_UNTRUSTED_INTR	"/tmp/octopos_mailbox_untrusted_intr"
+typedef struct __attribute__((__packed__)) {
+#ifdef ARCH_SEC_HW
+	unsigned timeout:12;
+	unsigned limit:12;
+	unsigned owner:8; /* Proc with current access to the non-fixed end of a queue. */
+#else
+	unsigned owner:8; /* Proc with current access to the non-fixed end of a queue. */
+	unsigned limit:12;
+	unsigned timeout:12;
 #endif
+} mailbox_state_reg_t;
 
-#define READ_ACCESS		0
-#define WRITE_ACCESS		1
+/* FIXME: these are also defined in octopos/runtime.h */
+typedef uint32_t limit_t;
+typedef uint32_t timeout_t;
+
+#define MAILBOX_NO_LIMIT_VAL			0xFFF
+#define MAILBOX_NO_TIMEOUT_VAL			0xFFF
+/* FIXME: these are also defined in octopos/runtime.h */
+#define MAILBOX_MAX_LIMIT_VAL			0xFFE
+#define MAILBOX_MAX_TIMEOUT_VAL			0xFFE
+#ifndef ARCH_SEC_HW
+#define MAILBOX_MIN_PRACTICAL_TIMEOUT_VAL	2
+#define MAILBOX_DEFAULT_TIMEOUT_VAL		6
+#else
+#define MAILBOX_MIN_PRACTICAL_TIMEOUT_VAL	20
+#define MAILBOX_DEFAULT_TIMEOUT_VAL		60
+#endif
 
 /* FIXME: move somewhere else */
 #ifdef UNTRUSTED_DOMAIN
-void mailbox_change_queue_access(uint8_t queue_id, uint8_t access, uint8_t proc_id);
-int mailbox_attest_queue_access(uint8_t queue_id, uint8_t access, uint8_t count);
+void mailbox_yield_to_previous_owner(uint8_t queue_id);
+int mailbox_attest_queue_access(uint8_t queue_id, limit_t limit,
+				timeout_t timeout);
 void reset_queue_sync(uint8_t queue_id, int init_val);
+limit_t get_queue_limit(uint8_t queue_id);
+timeout_t get_queue_timeout(uint8_t queue_id);
+void decrement_queue_limit(uint8_t queue_id, limit_t count);
+void register_timeout_update_callback(uint8_t queue_id,
+				      void (*callback)(uint8_t, timeout_t));
 #endif
+
+#endif /* _OCTOPOS_MAILBOX_H_ */

@@ -9,15 +9,11 @@
 #include <stdlib.h>
 #include <sys/stat.h>
 #define UNTRUSTED_DOMAIN
-#include <octopos/mailbox.h>
+#include <octopos/mailbox_umode.h>
 
+/* FIXME: no op. Remove. */
 int init_octopos_mailbox_interface(void)
 {
-	/* initialize mailbox access */
-	mkfifo(FIFO_UNTRUSTED_OUT, 0666);
-	mkfifo(FIFO_UNTRUSTED_IN, 0666);
-	mkfifo(FIFO_UNTRUSTED_INTR, 0666);
-
 	return 0;
 }
 
